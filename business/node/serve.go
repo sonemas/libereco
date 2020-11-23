@@ -45,7 +45,7 @@ func (n *Node) Serve() error {
 
 					stream, err := p.client.Ping(context.Background(), &networking.EmptyRequest{})
 					if err != nil {
-						n.logger.Printf("ping request failed: %v", err)
+						n.logger.Printf("Ping request failed: %v", err)
 					}
 
 					for {
@@ -54,9 +54,19 @@ func (n *Node) Serve() error {
 							break
 						}
 						if err != nil {
-							n.logger.Printf("stream error: %v", err)
+							n.logger.Printf("Stream error: %v", err)
 						}
-						n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+
+						switch msg.Status {
+						case networking.Node_NODE_STATUS_JOINED:
+							n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+						case networking.Node_NODE_STATUS_FAILED:
+							if n.HasPeer(msg.Id) {
+								n.RemovePeer(msg.Id)
+							}
+						default:
+							n.logger.Printf("Unexpected status: %v", msg.Status)
+						}
 					}
 				}
 			case <-n.stopChan:
