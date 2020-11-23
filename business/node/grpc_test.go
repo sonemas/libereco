@@ -26,7 +26,7 @@ func newNode() (int, error) {
 	i := len(nodes)
 
 	logger := log.New(os.Stdout, fmt.Sprintf("NODE %d : ", i), log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
-	n, err := New(logger, fmt.Sprintf("0.0.0.0:%d", 50000+i))
+	n, err := New(logger, fmt.Sprintf("0.0.0.0:%d/%d", 50000+i, i))
 	if err != nil {
 		return i, err
 	}

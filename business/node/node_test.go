@@ -9,14 +9,14 @@ import (
 )
 
 func TestNode(t *testing.T) {
-	log := log.New(os.Stdout, "API : ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
+	log := log.New(os.Stdout, "NODE : ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 
 	t.Log("Given the need to work with Nodes.")
 	{
 		testID := 0
 		t.Logf("\tTest %d:\tWhen handling a single Node.", testID)
 
-		n, err := New(log, "0.0.0.0:50000")
+		n, err := New(log, "0.0.0.0:50000/0")
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to create a new node: %s.", tests.Failed, testID, err)
 		}

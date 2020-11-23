@@ -28,8 +28,6 @@ var (
 	ErrBootstrapingFailed = errors.New("bootstrap process failed")
 )
 
-// TODO: Implement contexts with timeouts.
-
 // SplitAddr splits the provided address into the host/port, id and optional protocol.
 // The format of addresses is: host:post/id[/protocpl]. The default protocol is TCP.
 func SplitAddr(addr string) (string, string, string, error) {
@@ -49,6 +47,7 @@ func SplitAddr(addr string) (string, string, string, error) {
 // Node is a networking node.
 type Node struct {
 	mu            sync.RWMutex
+	id            string
 	addr          string
 	logger        *log.Logger
 	peers         map[string]*Peer
@@ -65,9 +64,14 @@ type Node struct {
 
 // New returns an initialized node.
 func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, error) {
-	// TODO: Check if addr is valid.
+	addr, id, _, err := SplitAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+
 	n := Node{
 		logger:         logger,
+		id:             id,
 		addr:           addr,
 		peers:          make(map[string]*Peer),
 		newPeers:       make(map[string]*Peer),
@@ -175,6 +179,8 @@ func (n *Node) AddPeer(p *Peer) {
 	if _, ok := n.inactivePeers[p.id]; ok {
 		delete(n.inactivePeers, p.id)
 	}
+
+	n.logger.Printf("Node %s/%s has been added.", p.addr, p.id)
 }
 
 // SetPeer adds a peer to the node's finger table.
@@ -216,6 +222,8 @@ func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
 			delete(n.newPeers, p.id)
 		}
 
+		n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
+
 		return nil
 	}
 
@@ -245,14 +253,17 @@ func (n *Node) MarkPeerInactive(id string) error {
 	n.inactivePeers[id] = p
 	delete(n.peers, id)
 
+	n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
+
 	return nil
 }
 
 // RemovePeer will remove a peer form the node's finger table, as well as
 // the tables of new/inactive peers.
 func (n *Node) RemovePeer(id string) error {
-	if !n.HasPeer(id) {
-		return ErrPeerNotFound
+	p, err := n.GetPeer(id)
+	if err != nil {
+		return err
 	}
 
 	n.mu.Lock()
@@ -269,6 +280,8 @@ func (n *Node) RemovePeer(id string) error {
 	if _, ok := n.inactivePeers[id]; ok {
 		delete(n.inactivePeers, id)
 	}
+
+	n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
 
 	return nil
 }

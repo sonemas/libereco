@@ -43,7 +43,10 @@ func (n *Node) Serve() error {
 						continue
 					}
 
-					stream, err := p.client.Ping(context.Background(), &networking.EmptyRequest{})
+					ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
+					defer cancel()
+
+					stream, err := p.client.Ping(ctx, &networking.EmptyRequest{})
 					if err != nil {
 						n.logger.Printf("Ping request failed: %v", err)
 					}
