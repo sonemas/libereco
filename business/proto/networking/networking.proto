@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package networking;
+option go_package="github.com/sonemas/libereco/business/protobuf/networking";
+
+message Node {
+    enum Status {
+        NODE_STATUS_UNSET = 0;
+        NODE_STATUS_JOINED = 1;
+        NODE_STATUS_FAILED = 2;
+    }
+    string id = 1;
+    string addr = 2;
+    Status status = 3;
+}
+
+message RegisterRequest {
+    string id = 1;
+    string addr = 2;
+}
+
+message RegisterResponse {
+    string addr = 2;
+}
+
+message EmptyRequest {}
+
+message PingRequest {
+    Node node = 1;
+}
+
+message PingReqResponse {
+    bool success = 1;
+}
+
+service NetworkingService {
+    rpc Register(RegisterRequest) returns (stream Node) {};
+    rpc Ping(EmptyRequest) returns (stream Node) {};
+    rpc PingReq(PingRequest) returns (PingReqResponse) {};
+}
