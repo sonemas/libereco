@@ -11,6 +11,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Serve starts the server and blocks on server requests.
+// It will also initialize the periodic ping requests to check whether
+// peers are still alive.
 func (n *Node) Serve() error {
 	l, err := net.Listen("tcp", n.addr)
 	if err != nil {
@@ -75,6 +78,7 @@ func (n *Node) Serve() error {
 	return nil
 }
 
+// Shutdown will gracefully shutdown the server.
 func (n *Node) Shutdown(ctx context.Context) error {
 	// TODO: Implement context
 	n.stopChan <- struct{}{}

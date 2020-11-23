@@ -1,11 +1,15 @@
 package node
 
 import (
+	"context"
 	"errors"
+	"io"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/sonemas/libereco/business/protobuf/networking"
 	"google.golang.org/grpc"
 )
 
@@ -16,7 +20,31 @@ var (
 	// ErrPeerExists is an error indicating that a peer already exists in
 	// a node's finger table.
 	ErrPeerExists = errors.New("peer already exists")
+
+	// ErrInvalidAddr is an error indicating an address is not in the correct format.
+	ErrInvalidAddr = errors.New("address should be in the format host:port/id[/protocol]")
+
+	// ErrBootstrapingFailed is an error indicating that bootstrapping failed.
+	ErrBootstrapingFailed = errors.New("bootstrap process failed")
 )
+
+// TODO: Implement contexts with timeouts.
+
+// SplitAddr splits the provided address into the host/port, id and optional protocol.
+// The format of addresses is: host:post/id[/protocpl]. The default protocol is TCP.
+func SplitAddr(addr string) (string, string, string, error) {
+	p := strings.Split(addr, "/")
+	if len(p) < 2 {
+		return "", "", "", ErrInvalidAddr
+	}
+
+	pr := "tcp"
+	if len(p) == 3 {
+		pr = p[2]
+	}
+
+	return p[0], p[1], pr, nil
+}
 
 // Node is a networking node.
 type Node struct {
@@ -31,20 +59,72 @@ type Node struct {
 	dialOptions   []grpc.DialOption
 
 	// PingInterval is the interval between pings.
-	PingInterval time.Duration
+	PingInterval   time.Duration
+	RequestTimeout time.Duration
 }
 
 // New returns an initialized node.
 func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, error) {
-	// TODO: Check if addr is valid/
+	// TODO: Check if addr is valid.
 	n := Node{
-		logger:        logger,
-		addr:          addr,
-		peers:         make(map[string]*Peer),
-		newPeers:      make(map[string]*Peer),
-		inactivePeers: make(map[string]*Peer),
-		stopChan:      make(chan struct{}, 1),
-		PingInterval:  60 * time.Second,
+		logger:         logger,
+		addr:           addr,
+		peers:          make(map[string]*Peer),
+		newPeers:       make(map[string]*Peer),
+		inactivePeers:  make(map[string]*Peer),
+		stopChan:       make(chan struct{}, 1),
+		PingInterval:   60 * time.Second,
+		RequestTimeout: 20 * time.Second,
+	}
+
+	if len(bootstrapNodes) > 0 {
+		success := false
+
+		for _, node := range bootstrapNodes {
+			n.logger.Printf("Bootstrapping via %q.", node)
+			addr, id, _, err := SplitAddr(node)
+			if err != nil {
+				n.logger.Printf("Bootstrapping via %q failed: %s.", node, err)
+				continue
+			}
+
+			peer, err := DialPeer(addr, n.dialOptions...)
+			if err != nil {
+				n.logger.Printf("Bootstrapping via %q failed: %s.", node, err)
+				continue
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
+			defer cancel()
+
+			stream, err := peer.client.Register(ctx, &networking.RegisterRequest{Id: id, Addr: addr})
+			for {
+				msg, err := stream.Recv()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					n.logger.Printf("Stream error: %s", err)
+					continue
+				}
+
+				switch msg.Status {
+				case networking.Node_NODE_STATUS_JOINED:
+					n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+				case networking.Node_NODE_STATUS_FAILED:
+					if n.HasPeer(msg.Id) {
+						n.RemovePeer(msg.Id)
+					}
+				default:
+					n.logger.Printf("Unexpected status: %v", msg.Status)
+				}
+			}
+		}
+
+		if !success {
+			n.logger.Printf("Could't successfully bootstrap node.")
+			return nil, ErrBootstrapingFailed
+		}
+		n.logger.Printf("Successfully bootstrapped node.")
 	}
 
 	return &n, nil
