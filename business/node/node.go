@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -19,9 +20,8 @@ var (
 
 // Node is a networking node.
 type Node struct {
-	mu   sync.RWMutex
-	addr string
-
+	mu            sync.RWMutex
+	addr          string
 	logger        *log.Logger
 	peers         map[string]*Peer
 	newPeers      map[string]*Peer
@@ -29,6 +29,9 @@ type Node struct {
 	initialized   bool
 	stopChan      chan struct{}
 	dialOptions   []grpc.DialOption
+
+	// PingInterval is the interval between pings.
+	PingInterval time.Duration
 }
 
 // New returns an initialized node.
@@ -41,6 +44,7 @@ func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, erro
 		newPeers:      make(map[string]*Peer),
 		inactivePeers: make(map[string]*Peer),
 		stopChan:      make(chan struct{}, 1),
+		PingInterval:  60 * time.Second,
 	}
 
 	return &n, nil

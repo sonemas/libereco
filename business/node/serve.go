@@ -2,7 +2,9 @@ package node
 
 import (
 	"context"
+	"io"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
@@ -22,6 +24,41 @@ func (n *Node) Serve() error {
 	go func() {
 		if err := s.Serve(l); err != nil {
 			errChan <- errors.Wrap(err, "starting server")
+		}
+	}()
+
+	go func() {
+		t := time.NewTicker(n.PingInterval)
+		for {
+			select {
+			case <-t.C:
+				for _, peer := range n.peers {
+					p, err := peer.Dial()
+					if err != nil {
+						// Mark peer as inactive
+						n.UpdatePeer(peer, true)
+						continue
+					}
+
+					stream, err := p.client.Ping(context.Background(), &networking.EmptyRequest{})
+					if err != nil {
+						n.logger.Printf("ping request failed: %v", err)
+					}
+
+					for {
+						msg, err := stream.Recv()
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							n.logger.Printf("stream error: %v", err)
+						}
+						n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+					}
+				}
+			case <-n.stopChan:
+				break
+			}
 		}
 	}()
 

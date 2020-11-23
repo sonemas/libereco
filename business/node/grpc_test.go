@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/sonemas/libereco/business/protobuf/networking"
 	"github.com/sonemas/libereco/business/tests"
@@ -30,6 +31,7 @@ func newNode() (int, error) {
 		return i, err
 	}
 	n.DialOptions(grpc.WithInsecure())
+	n.PingInterval = 5 * time.Hour // Disable automated pings while testing.
 
 	nodes = append(nodes, n)
 
