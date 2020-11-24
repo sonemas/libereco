@@ -27,9 +27,9 @@ Under development. Not recommended for use in production.
 ## TODO
 
 Targets for v1 release:
-[ ] Node (member) management
-[ ] Zones
-[ ] Wallets
-[ ] Blockchain storage
-[ ] Advanced membership protocols
-[ ] ZKP
+- [ ] Node (member) management
+- [ ] Zones
+- [ ] Wallets
+- [ ] Blockchain storage
+- [ ] Advanced membership protocols
+- [ ] ZKP
