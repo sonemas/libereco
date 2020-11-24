@@ -18,7 +18,9 @@ var nodes []*Node
 
 func tearDown() {
 	for _, node := range nodes {
-		node.Shutdown(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		node.Shutdown(ctx)
 	}
 }
 

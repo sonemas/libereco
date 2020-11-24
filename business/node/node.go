@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,6 +29,12 @@ var (
 
 	// ErrBootstrapingFailed is an error indicating that bootstrapping failed.
 	ErrBootstrapingFailed = errors.New("bootstrap process failed")
+
+	// ErrNodeIsStopped is an error indicating that the node has been stopped.
+	ErrNodeIsStopped = errors.New("node is stopped.")
+
+	// ErrNodeInShutdown is an error indicating that the node is shutting down.
+	ErrNodeInShutdown = errors.New("node is shutting down")
 )
 
 // SplitAddr splits the provided address into the host/port, id and optional protocol.
@@ -46,6 +53,12 @@ func SplitAddr(addr string) (string, string, string, error) {
 	return p[0], p[1], pr, nil
 }
 
+type atomicBool int32
+
+func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
+func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
+func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
+
 // Node is a networking node.
 type Node struct {
 	mu          sync.RWMutex
@@ -56,6 +69,8 @@ type Node struct {
 	joinedPeers map[string]*Peer
 	faultyPeers map[string]*Peer
 	stopChan    chan struct{}
+	inShutdown  atomicBool
+	stopped     atomicBool
 	dialOptions []grpc.DialOption
 
 	// PingInterval is the interval between pings.

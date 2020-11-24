@@ -16,6 +16,15 @@ import (
 // It will also initialize the periodic ping requests to check whether
 // peers are still alive.
 func (n *Node) Serve() error {
+	// Return an error if the node is shutting down or shutdown.
+	if n.inShutdown.isSet() {
+		return ErrNodeInShutdown
+	}
+
+	if n.stopped.isSet() {
+		return ErrNodeIsStopped
+	}
+
 	l, err := net.Listen("tcp", n.addr)
 	if err != nil {
 		return errors.Wrap(err, "creating listener")
@@ -107,15 +116,18 @@ func (n *Node) Serve() error {
 					n.EmptyNewAndfaultyPeers()
 				}
 			case <-n.stopChan:
-				break
+				return
 			}
 		}
 	}()
 
-	for {
+	stop := false
+	for !stop {
 		select {
 		case <-n.stopChan:
 			s.Stop()
+			n.stopped.setTrue()
+			stop = true
 			break
 		case err := <-errChan:
 			return err
@@ -127,8 +139,15 @@ func (n *Node) Serve() error {
 
 // Shutdown will gracefully shutdown the server.
 func (n *Node) Shutdown(ctx context.Context) error {
-	// TODO: Implement context
+	n.inShutdown.setTrue()
 	n.stopChan <- struct{}{}
+
+	for !n.stopped.isSet() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 
 	return nil
 }
