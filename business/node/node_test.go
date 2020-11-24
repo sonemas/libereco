@@ -32,12 +32,12 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to add a new peer.", tests.Success, testID)
 
-		if n.newPeers[peer1.id].id != peer1.id {
+		if n.joinedPeers[peer1.id].id != peer1.id {
 			t.Fatalf("\t%s\tTest %d:\tShould be listed in new peer's table.", tests.Failed, testID)
 		}
 		t.Logf("\t%s\tTest %d:\tShould be listed in table of new peers.", tests.Success, testID)
 
-		expected, got := 0, len(n.inactivePeers)
+		expected, got := 0, len(n.faultyPeers)
 		if got != expected {
 			t.Fatalf("\t%s\tTest %d:\tShould have %d inactive peers, but got %d.", tests.Failed, testID, expected, got)
 		}
@@ -55,11 +55,11 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerExists when trying to set an existing peer.", tests.Success, testID)
 
-		newPeers := n.NewPeers()
-		if len(newPeers) != 1 && newPeers[0].id != peer1.id {
-			t.Fatalf("\t%s\tTest %d:\tShould have only peer %s in newPeers: %v.", tests.Failed, testID, peer1.id, n.newPeers)
+		joinedPeers := n.JoinedPeers()
+		if len(joinedPeers) != 1 && joinedPeers[0].id != peer1.id {
+			t.Fatalf("\t%s\tTest %d:\tShould have only peer %s in joinedPeers: %v.", tests.Failed, testID, peer1.id, n.joinedPeers)
 		}
-		t.Logf("\t%s\tTest %d:\tShould have only peer %s in newPeers.", tests.Success, testID, peer1.id)
+		t.Logf("\t%s\tTest %d:\tShould have only peer %s in joinedPeers.", tests.Success, testID, peer1.id)
 
 		// GetPeer
 		p, err := n.GetPeer(peer1.id)
@@ -92,8 +92,8 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerNotFound when getting inactive client.", tests.Success, testID)
 
-		if len(n.inactivePeers) > 0 && n.inactivePeers[peer1.id].id != peer1.id {
-			t.Fatalf("\t%s\tTest %d:\tShould have updated peer in table of inactive peers: %+v.", tests.Failed, testID, n.inactivePeers)
+		if len(n.faultyPeers) > 0 && n.faultyPeers[peer1.id].id != peer1.id {
+			t.Fatalf("\t%s\tTest %d:\tShould have updated peer in table of inactive peers: %+v.", tests.Failed, testID, n.faultyPeers)
 		}
 		t.Logf("\t%s\tTest %d:\tShould have updated peer in table of inactive peers.", tests.Success, testID)
 
@@ -104,7 +104,7 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to update without marking the peer as inactive.", tests.Success, testID)
 
-		l := len(n.inactivePeers)
+		l := len(n.faultyPeers)
 		if l != 1 {
 			t.Fatalf("\t%s\tTest %d:\tShould have 1 peer marked as inactive, but got: %d.", tests.Failed, testID, l)
 		}
@@ -116,16 +116,16 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to mark peer as inactive.", tests.Success, testID)
 
-		if l := len(n.inactivePeers); l != 2 {
+		if l := len(n.faultyPeers); l != 2 {
 			t.Fatalf("\t%s\tTest %d:\tShould have 2 peers marked as inactive, but got: %d.", tests.Failed, testID, l)
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 2 peers marked as inactive.", tests.Success, testID)
 
-		inactivePeers := n.InactivePeers()
-		if l := len(inactivePeers); l != 2 {
-			t.Fatalf("\t%s\tTest %d:\tShould have 2 peers in inactivePeers, but got: %v.", tests.Failed, testID, l)
+		faultyPeers := n.FaultyPeers()
+		if l := len(faultyPeers); l != 2 {
+			t.Fatalf("\t%s\tTest %d:\tShould have 2 peers in faultyPeers, but got: %v.", tests.Failed, testID, l)
 		}
-		t.Logf("\t%s\tTest %d:\tShould have 2 peers in inactivePeers.", tests.Success, testID)
+		t.Logf("\t%s\tTest %d:\tShould have 2 peers in faultyPeers.", tests.Success, testID)
 
 		// RemovePeer
 		n.AddPeer(&peer2)

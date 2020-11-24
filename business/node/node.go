@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+// TODO: Dealing with faulty peers.
+
 var (
 	// ErrPeerNotFound is an error indicating that a peer can't be found.
 	ErrPeerNotFound = errors.New("peer not found")
@@ -46,15 +48,15 @@ func SplitAddr(addr string) (string, string, string, error) {
 
 // Node is a networking node.
 type Node struct {
-	mu            sync.RWMutex
-	id            string
-	addr          string
-	logger        *log.Logger
-	peers         map[string]*Peer
-	newPeers      map[string]*Peer
-	inactivePeers map[string]*Peer
-	stopChan      chan struct{}
-	dialOptions   []grpc.DialOption
+	mu          sync.RWMutex
+	id          string
+	addr        string
+	logger      *log.Logger
+	peers       map[string]*Peer
+	joinedPeers map[string]*Peer
+	faultyPeers map[string]*Peer
+	stopChan    chan struct{}
+	dialOptions []grpc.DialOption
 
 	// PingInterval is the interval between pings.
 	PingInterval time.Duration
@@ -117,8 +119,8 @@ func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 		id:             id,
 		addr:           addr,
 		peers:          make(map[string]*Peer),
-		newPeers:       make(map[string]*Peer),
-		inactivePeers:  make(map[string]*Peer),
+		joinedPeers:    make(map[string]*Peer),
+		faultyPeers:    make(map[string]*Peer),
 		stopChan:       make(chan struct{}, 1),
 		PingInterval:   60 * time.Second,
 		RequestTimeout: 20 * time.Second,
@@ -224,11 +226,11 @@ func (n *Node) AddPeer(p *Peer) {
 	defer n.mu.Unlock()
 
 	n.peers[p.id] = p
-	n.newPeers[p.id] = p
+	n.joinedPeers[p.id] = p
 
 	// Remove from inactive list if there.
-	if _, ok := n.inactivePeers[p.id]; ok {
-		delete(n.inactivePeers, p.id)
+	if _, ok := n.faultyPeers[p.id]; ok {
+		delete(n.faultyPeers, p.id)
 	}
 
 	n.logger.Printf("Node %s/%s has been added.", p.addr, p.id)
@@ -247,8 +249,8 @@ func (n *Node) SetPeer(p *Peer) error {
 	n.peers[p.id] = p
 
 	// Remove from inactive list if there.
-	if _, ok := n.inactivePeers[p.id]; ok {
-		delete(n.inactivePeers, p.id)
+	if _, ok := n.faultyPeers[p.id]; ok {
+		delete(n.faultyPeers, p.id)
 	}
 
 	return nil
@@ -265,12 +267,12 @@ func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
 	defer n.mu.Unlock()
 
 	if inactive {
-		n.inactivePeers[p.id] = p
+		n.faultyPeers[p.id] = p
 		delete(n.peers, p.id)
 
 		// Remove from new list if there.
-		if _, ok := n.newPeers[p.id]; ok {
-			delete(n.newPeers, p.id)
+		if _, ok := n.joinedPeers[p.id]; ok {
+			delete(n.joinedPeers, p.id)
 		}
 
 		n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
@@ -279,13 +281,13 @@ func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
 	}
 
 	n.peers[p.id] = p
-	if _, ok := n.newPeers[p.id]; ok {
-		n.newPeers[p.id] = p
+	if _, ok := n.joinedPeers[p.id]; ok {
+		n.joinedPeers[p.id] = p
 	}
 
 	// Remove from inactive list if there.
-	if _, ok := n.inactivePeers[p.id]; ok {
-		delete(n.inactivePeers, p.id)
+	if _, ok := n.faultyPeers[p.id]; ok {
+		delete(n.faultyPeers, p.id)
 	}
 
 	return nil
@@ -301,7 +303,7 @@ func (n *Node) MarkPeerInactive(id string) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.inactivePeers[id] = p
+	n.faultyPeers[id] = p
 	delete(n.peers, id)
 
 	n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
@@ -322,14 +324,14 @@ func (n *Node) RemovePeer(id string) error {
 
 	delete(n.peers, id)
 
-	// Remove from newPeers if there.
-	if _, ok := n.newPeers[id]; ok {
-		delete(n.newPeers, id)
+	// Remove from joinedPeers if there.
+	if _, ok := n.joinedPeers[id]; ok {
+		delete(n.joinedPeers, id)
 	}
 
-	// Remove from inactivePeers if there.
-	if _, ok := n.inactivePeers[id]; ok {
-		delete(n.inactivePeers, id)
+	// Remove from faultyPeers if there.
+	if _, ok := n.faultyPeers[id]; ok {
+		delete(n.faultyPeers, id)
 	}
 
 	n.logger.Printf("Node %s/%s has been listed as inactive.", p.addr, p.id)
@@ -337,11 +339,11 @@ func (n *Node) RemovePeer(id string) error {
 	return nil
 }
 
-// NewPeers returns a slice of new peers and resets the interal table
+// JoinedPeers returns a slice of new peers and resets the interal table
 // of new peers.
-func (n *Node) NewPeers() []*Peer {
+func (n *Node) JoinedPeers() []*Peer {
 	n.mu.Lock()
-	peers := n.newPeers
+	peers := n.joinedPeers
 	n.mu.Unlock()
 
 	r := []*Peer{}
@@ -353,11 +355,11 @@ func (n *Node) NewPeers() []*Peer {
 	return r
 }
 
-// InactivePeers returns a slice of inactive peers and resets the interal table
+// FaultyPeers returns a slice of inactive peers and resets the interal table
 // of inactive peers.
-func (n *Node) InactivePeers() []*Peer {
+func (n *Node) FaultyPeers() []*Peer {
 	n.mu.Lock()
-	peers := n.inactivePeers
+	peers := n.faultyPeers
 	n.mu.Unlock()
 
 	r := []*Peer{}
@@ -369,12 +371,12 @@ func (n *Node) InactivePeers() []*Peer {
 	return r
 }
 
-// EmptyNewAndInactivePeers resets the node's lists of
+// EmptyNewAndfaultyPeers resets the node's lists of
 // new and inactive peers.
-func (n *Node) EmptyNewAndInactivePeers() {
+func (n *Node) EmptyNewAndfaultyPeers() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	n.newPeers = make(map[string]*Peer)
-	n.inactivePeers = make(map[string]*Peer)
+	n.joinedPeers = make(map[string]*Peer)
+	n.faultyPeers = make(map[string]*Peer)
 }

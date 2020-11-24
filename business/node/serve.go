@@ -55,19 +55,19 @@ func (n *Node) Serve() error {
 						n.logger.Printf("Ping request failed: %v", err)
 					}
 
-					newPeers := n.NewPeers()
-					inactivePeers := n.InactivePeers()
+					joinedPeers := n.JoinedPeers()
+					faultyPeers := n.FaultyPeers()
 
 					wg.Add(2)
-					go func(stream networking.NetworkingService_SyncClient, newPeers []*Peer, inactivePeers []*Peer) {
-						for _, peer := range newPeers {
+					go func(stream networking.NetworkingService_SyncClient, joinedPeers []*Peer, faultyPeers []*Peer) {
+						for _, peer := range joinedPeers {
 							if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_JOINED}); err != nil {
 								n.logger.Printf("Failed to send to stream: %s", err)
 								continue
 							}
 						}
 
-						for _, peer := range inactivePeers {
+						for _, peer := range faultyPeers {
 							if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
 								n.logger.Printf("Failed to send to stream: %s", err)
 								continue
@@ -75,7 +75,7 @@ func (n *Node) Serve() error {
 						}
 
 						wg.Done()
-					}(stream, newPeers, inactivePeers)
+					}(stream, joinedPeers, faultyPeers)
 
 					go func(stream networking.NetworkingService_SyncClient) {
 						for {
@@ -104,7 +104,7 @@ func (n *Node) Serve() error {
 					wg.Wait()
 					stream.CloseSend() // TODO: Should perhaps be moved to sending goroutine.
 
-					n.EmptyNewAndInactivePeers()
+					n.EmptyNewAndfaultyPeers()
 				}
 			case <-n.stopChan:
 				break

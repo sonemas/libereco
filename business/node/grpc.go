@@ -20,7 +20,7 @@ func (n *Node) Register(req *networking.RegisterRequest, stream networking.Netwo
 	// Send known peers.
 	for _, peer := range n.peers {
 		status := networking.Node_NODE_STATUS_UNSET
-		if _, exists := n.newPeers[peer.id]; exists {
+		if _, exists := n.joinedPeers[peer.id]; exists {
 			status = networking.Node_NODE_STATUS_JOINED
 		}
 		if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: status}); err != nil {
@@ -30,7 +30,7 @@ func (n *Node) Register(req *networking.RegisterRequest, stream networking.Netwo
 
 	// Send known inactive peers.
 	// It's important to send these as well on registrtion, in case a peer reconnects after a network failure.
-	for _, peer := range n.InactivePeers() {
+	for _, peer := range n.FaultyPeers() {
 		if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
 			continue
 		}
@@ -41,8 +41,8 @@ func (n *Node) Register(req *networking.RegisterRequest, stream networking.Netwo
 
 // Sync implements the NetworkingServiceServer interface.
 func (n *Node) Sync(stream networking.NetworkingService_SyncServer) error {
-	newPeers := n.NewPeers()
-	inactivePeers := n.InactivePeers()
+	joinedPeers := n.JoinedPeers()
+	faultyPeers := n.FaultyPeers()
 
 	// Receive
 	wg := sync.WaitGroup{}
@@ -76,13 +76,13 @@ func (n *Node) Sync(stream networking.NetworkingService_SyncServer) error {
 
 	// Send
 	go func(stream networking.NetworkingService_SyncServer) {
-		for _, peer := range newPeers {
+		for _, peer := range joinedPeers {
 			if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_JOINED}); err != nil {
 				continue
 			}
 		}
 
-		for _, peer := range inactivePeers {
+		for _, peer := range faultyPeers {
 			if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
 				continue
 			}

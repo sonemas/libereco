@@ -127,7 +127,7 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 1 peer registered with node %d.", tests.Success, testID, i)
 
-		if l := len(nodes[0].newPeers); l != 1 {
+		if l := len(nodes[0].joinedPeers); l != 1 {
 			t.Fatalf("\t%s\tTest %d:\tShould have 1 new peer registered with node %d, but got: %d.", tests.Failed, testID, i, l)
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 1 new peer registered with node %d.", tests.Success, testID, i)
@@ -155,7 +155,7 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 0 peer registered with node %d.", tests.Success, testID, i)
 
-		if l := len(nodes[0].newPeers); l != 1 {
+		if l := len(nodes[0].joinedPeers); l != 1 {
 			t.Fatalf("\t%s\tTest %d:\tShould have 1 faulty peers registered with node %d, but got: %d.", tests.Failed, testID, i, l)
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 1 faulty peers registered with node %d.", tests.Success, testID, i)
