@@ -4,51 +4,28 @@ import (
 	"context"
 	"io"
 	"log"
-	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
+	"github.com/sonemas/libereco/foundation/atomicvar"
+	"github.com/sonemas/libereco/foundation/caddr"
 	"github.com/sonemas/libereco/foundation/discovery"
 	"google.golang.org/grpc"
 )
 
-// SplitAddr splits the provided address into the host/port, id and optional protocol.
-// The format of addresses is: host:post/id[/protocpl]. The default protocol is TCP.
-func SplitAddr(addr string) (string, string, string, error) {
-	p := strings.Split(addr, "/")
-	if len(p) < 2 {
-		return "", "", "", discovery.ErrInvalidAddr
-	}
-
-	pr := "tcp"
-	if len(p) == 3 {
-		pr = p[2]
-	}
-
-	return p[0], p[1], pr, nil
-}
-
-type atomicBool int32
-
-func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
-func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
-func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
-
 // Nagi is a the implementation of the naĝi service discovery protocol.
 type Nagi struct {
 	mu          sync.RWMutex
-	id          string
-	addr        string
+	caddr       caddr.CAddr
 	logger      *log.Logger
 	peers       map[string]*Peer
 	joinedPeers map[string]*Peer
 	faultyPeers map[string]*Peer
 	stopChan    chan struct{}
-	inShutdown  atomicBool
-	stopped     atomicBool
+	inShutdown  atomicvar.AtomicBool
+	stopped     atomicvar.AtomicBool
 	dialOptions []grpc.DialOption
 
 	// PingInterval is the interval between pings.
@@ -62,7 +39,7 @@ type Nagi struct {
 }
 
 // NagiOption is an option that can be provided to New to customize
-// the node's internal values.
+// internal values.
 type NagiOption func(*Nagi) error
 
 // WithBootstrapNodes is an option to provide the bootstrap nodes for the node
@@ -95,22 +72,21 @@ func WithPingInterval(v time.Duration) NagiOption {
 // WithRequestTimeout is an option to define requests' timeout duration.
 func WithRequestTimeout(v time.Duration) NagiOption {
 	return func(n *Nagi) error {
-		n.PingInterval = v
+		n.RequestTimeout = v
 		return nil
 	}
 }
 
 // New returns an initialized node.
 func New(logger *log.Logger, addr string, opts ...NagiOption) (*Nagi, error) {
-	addr, id, _, err := SplitAddr(addr)
+	ca, err := caddr.FromString(addr)
 	if err != nil {
 		return nil, err
 	}
 
 	n := Nagi{
 		logger:         logger,
-		id:             id,
-		addr:           addr,
+		caddr:          ca,
 		peers:          make(map[string]*Peer),
 		joinedPeers:    make(map[string]*Peer),
 		faultyPeers:    make(map[string]*Peer),
@@ -130,13 +106,13 @@ func New(logger *log.Logger, addr string, opts ...NagiOption) (*Nagi, error) {
 
 		for _, node := range n.BootstrapNodes {
 			n.logger.Printf("Bootstrapping via %q.", node)
-			addr, _, _, err := SplitAddr(node)
+			ca, err := caddr.FromString(node)
 			if err != nil {
 				n.logger.Printf("Bootstrapping via %q failed: %s.", node, err)
 				continue
 			}
 
-			peer, err := DialPeer(addr, n.dialOptions...)
+			peer, err := DialPeer(ca.Addr(), n.dialOptions...)
 			if err != nil {
 				n.logger.Printf("Bootstrapping via %q failed: %s.", node, err)
 				continue
@@ -145,7 +121,7 @@ func New(logger *log.Logger, addr string, opts ...NagiOption) (*Nagi, error) {
 			defer cancel()
 
 			// n.logger.Printf("ID: %s, Addr: %s", id, addr)
-			stream, err := peer.client.Register(ctx, &networking.RegisterRequest{Id: n.id, Addr: n.addr})
+			stream, err := peer.client.Register(ctx, &networking.RegisterRequest{Id: n.caddr.ID, Addr: n.caddr.Addr()})
 			for {
 				msg, err := stream.Recv()
 				if err == io.EOF {
@@ -157,7 +133,7 @@ func New(logger *log.Logger, addr string, opts ...NagiOption) (*Nagi, error) {
 				}
 
 				// Don't put own details in the finter table.
-				if msg.Id == n.id {
+				if msg.Id == n.caddr.ID {
 					continue
 				}
 
@@ -372,4 +348,10 @@ func (n *Nagi) EmptyNewAndfaultyPeers() {
 
 	n.joinedPeers = make(map[string]*Peer)
 	n.faultyPeers = make(map[string]*Peer)
+}
+
+func (n *Nagi) Init(s *grpc.Server) error {
+	networking.RegisterNetworkingServiceServer(s, n)
+
+	return nil
 }

@@ -68,7 +68,7 @@ func TestGRPC(t *testing.T) {
 		t.Logf("\t%s\tTest %d:\tShould be able to create node %d.", tests.Success, testID, i)
 
 		// Register
-		conn, err := grpc.Dial(nodes[0].addr, grpc.WithInsecure())
+		conn, err := grpc.Dial(nodes[0].caddr.Addr(), grpc.WithInsecure())
 		client := networking.NewNetworkingServiceClient(conn)
 		defer conn.Close()
 
@@ -169,7 +169,7 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to create node %d.", tests.Success, testID, i2)
 
-		res, err = client.Ping(context.Background(), &networking.PingRequest{Node: &networking.Node{Id: "0", Addr: nodes[1].addr}})
+		res, err = client.Ping(context.Background(), &networking.PingRequest{Node: &networking.Node{Id: "0", Addr: nodes[1].caddr.Addr()}})
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to ping node %d: %s.", tests.Failed, testID, i, err)
 		}
@@ -184,7 +184,7 @@ func TestGRPC(t *testing.T) {
 		testID = 1
 		t.Logf("\tTest %d:\tWhen handling a non-bootstrap Node.", testID)
 
-		i3, err := newNode(fmt.Sprintf("%s/%s", nodes[0].addr, nodes[0].id))
+		i3, err := newNode(fmt.Sprintf("%s/%s", nodes[0].caddr.Addr(), nodes[0].caddr.ID))
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to create node %d: %s.", tests.Failed, testID, i3, err)
 		}

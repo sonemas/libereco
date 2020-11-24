@@ -49,7 +49,7 @@ func (n *Nagi) checkPotentiallyFaulty(peers ...*Peer) {
 		if err != nil {
 			// Use this node in case there's no other peer available.
 			// This is not ideal, but can happen on small irreliable networks.
-			peer = &Peer{id: n.id, addr: n.addr}
+			peer = &Peer{id: n.caddr.ID, addr: n.caddr.Addr()}
 			c, err := peer.Dial()
 			if err != nil {
 				n.logger.Printf("all nodes failed")
@@ -79,7 +79,7 @@ func (n *Nagi) checkPotentiallyFaulty(peers ...*Peer) {
 			if err != nil {
 				// Use this node in case there's no other peer available.
 				// This is not ideal, but can happen on small irreliable networks.
-				peer = &Peer{id: n.id, addr: n.addr}
+				peer = &Peer{id: n.caddr.ID, addr: n.caddr.Addr()}
 				c, err := peer.Dial()
 				if err != nil {
 					n.logger.Printf("all nodes failed")
@@ -190,15 +190,15 @@ func (n *Nagi) sync() {
 // peers are still alive.
 func (n *Nagi) Serve() error {
 	// Return an error if the node is shutting down or shutdown.
-	if n.inShutdown.isSet() {
+	if n.inShutdown.IsSet() {
 		return discovery.ErrServiceInShutdown
 	}
 
-	if n.stopped.isSet() {
+	if n.stopped.IsSet() {
 		return discovery.ErrServiceIsStopped
 	}
 
-	l, err := net.Listen("tcp", n.addr)
+	l, err := net.Listen(n.caddr.Proto, n.caddr.Addr())
 	if err != nil {
 		return errors.Wrap(err, "creating listener")
 	}
@@ -230,7 +230,7 @@ func (n *Nagi) Serve() error {
 		select {
 		case <-n.stopChan:
 			s.Stop()
-			n.stopped.setTrue()
+			n.stopped.SetTrue()
 			stop = true
 			break
 		case err := <-errChan:
@@ -243,10 +243,10 @@ func (n *Nagi) Serve() error {
 
 // Shutdown will gracefully shutdown the server.
 func (n *Nagi) Shutdown(ctx context.Context) error {
-	n.inShutdown.setTrue()
+	n.inShutdown.SetTrue()
 	n.stopChan <- struct{}{}
 
-	for !n.stopped.isSet() {
+	for !n.stopped.IsSet() {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

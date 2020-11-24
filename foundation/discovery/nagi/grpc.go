@@ -15,7 +15,7 @@ func (n *Nagi) Register(req *networking.RegisterRequest, stream networking.Netwo
 	n.AddPeer(&Peer{id: req.Id, addr: req.Addr})
 
 	// Send my details.
-	stream.Send(&networking.Node{Id: n.id, Addr: n.addr})
+	stream.Send(&networking.Node{Id: n.caddr.ID, Addr: n.caddr.Addr()})
 
 	// Send known peers.
 	for _, peer := range n.peers {
