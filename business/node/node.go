@@ -2,13 +2,13 @@ package node
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
 	"google.golang.org/grpc"
 )
@@ -53,17 +53,60 @@ type Node struct {
 	peers         map[string]*Peer
 	newPeers      map[string]*Peer
 	inactivePeers map[string]*Peer
-	initialized   bool
 	stopChan      chan struct{}
 	dialOptions   []grpc.DialOption
 
 	// PingInterval is the interval between pings.
-	PingInterval   time.Duration
+	PingInterval time.Duration
+
+	// Request timeout is the maximum time for requests to last.
 	RequestTimeout time.Duration
+
+	// BootstrapNodes are the nodes used to bootstrap to the network.
+	BootstrapNodes []string
+}
+
+// NodeOption is an option that can be provided to New to customize
+// the node's internal values.
+type NodeOption func(*Node) error
+
+// WithBootstrapNodes is an option to provide the bootstrap nodes for the node
+// to use for the bootstrap process.
+func WithBootstrapNodes(v ...string) NodeOption {
+	return func(n *Node) error {
+		n.BootstrapNodes = v
+		return nil
+	}
+}
+
+// WithDialOptions is an option to provide dialoptions that will be used
+// when making GRPC dial requests to peers.
+func WithDialOptions(v ...grpc.DialOption) NodeOption {
+	return func(n *Node) error {
+		n.dialOptions = v
+		return nil
+	}
+}
+
+// WithPingInterval is an option to set a node's duration of ping sessions
+// to peers.
+func WithPingInterval(v time.Duration) NodeOption {
+	return func(n *Node) error {
+		n.PingInterval = v
+		return nil
+	}
+}
+
+// WithRequestTimeout is an option to define requests' timeout duration.
+func WithRequestTimeout(v time.Duration) NodeOption {
+	return func(n *Node) error {
+		n.PingInterval = v
+		return nil
+	}
 }
 
 // New returns an initialized node.
-func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, error) {
+func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 	addr, id, _, err := SplitAddr(addr)
 	if err != nil {
 		return nil, err
@@ -81,12 +124,18 @@ func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, erro
 		RequestTimeout: 20 * time.Second,
 	}
 
-	if len(bootstrapNodes) > 0 {
+	for _, opt := range opts {
+		if err := opt(&n); err != nil {
+			return nil, errors.Wrapf(err, "executing option %T", opt)
+		}
+	}
+
+	if len(n.BootstrapNodes) > 0 {
 		success := false
 
-		for _, node := range bootstrapNodes {
+		for _, node := range n.BootstrapNodes {
 			n.logger.Printf("Bootstrapping via %q.", node)
-			addr, id, _, err := SplitAddr(node)
+			addr, _, _, err := SplitAddr(node)
 			if err != nil {
 				n.logger.Printf("Bootstrapping via %q failed: %s.", node, err)
 				continue
@@ -100,7 +149,8 @@ func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, erro
 			ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
 			defer cancel()
 
-			stream, err := peer.client.Register(ctx, &networking.RegisterRequest{Id: id, Addr: addr})
+			// n.logger.Printf("ID: %s, Addr: %s", id, addr)
+			stream, err := peer.client.Register(ctx, &networking.RegisterRequest{Id: n.id, Addr: n.addr})
 			for {
 				msg, err := stream.Recv()
 				if err == io.EOF {
@@ -111,17 +161,23 @@ func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, erro
 					continue
 				}
 
+				// Don't put own details in the finter table.
+				if msg.Id == n.id {
+					continue
+				}
+
 				switch msg.Status {
-				case networking.Node_NODE_STATUS_JOINED:
-					n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
 				case networking.Node_NODE_STATUS_FAILED:
 					if n.HasPeer(msg.Id) {
 						n.RemovePeer(msg.Id)
 					}
 				default:
-					n.logger.Printf("Unexpected status: %v", msg.Status)
+					// Any other status than failed means that the peer
+					// should be added.
+					n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
 				}
 			}
+			success = true
 		}
 
 		if !success {
@@ -132,11 +188,6 @@ func New(logger *log.Logger, addr string, bootstrapNodes ...string) (*Node, erro
 	}
 
 	return &n, nil
-}
-
-// DialOptions sets the GRPC dial options used when making GRPC calls to peers.
-func (n *Node) DialOptions(opts ...grpc.DialOption) {
-	n.dialOptions = append(n.dialOptions, opts...)
 }
 
 // HasPeer returns true if a peer exists in the finger table.
@@ -285,6 +336,8 @@ func (n *Node) RemovePeer(id string) error {
 
 	return nil
 }
+
+// TODO: Review mechanism of emptying lists, implement pushing of new peers with ping requests.
 
 // NewPeers returns a slice of new peers and resets the interal table
 // of new peers.
