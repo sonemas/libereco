@@ -135,7 +135,7 @@ func TestGRPC(t *testing.T) {
 		t.Logf("\t%s\tTest %d:\tShould have 1 new peer registered with node %d.", tests.Success, testID, i)
 
 		// Ping
-		err = nodes[0].MarkPeerInactive("9999")
+		err = nodes[0].MarkPeerFaulty("9999")
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to mark peer as inactive:  %s.", tests.Failed, testID, err)
 		}

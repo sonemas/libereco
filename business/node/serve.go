@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -12,14 +13,109 @@ import (
 	"google.golang.org/grpc"
 )
 
+func (n *Node) dialFirstValidPeer(except ...*Peer) (*PeerConnection, *Peer, error) {
+	for _, peer := range n.peers {
+		ok := true
+		for _, e := range except {
+			if peer.id == e.id {
+				ok = false
+				break
+			}
+		}
+
+		if !ok {
+			continue
+		}
+
+		conn, err := peer.Dial()
+		if err != nil {
+			continue
+		}
+
+		return conn, peer, nil
+	}
+
+	return nil, nil, fmt.Errorf("peers exhausted")
+}
+
+// checkPotentiallyFaulty will do up to two attempts to ping the provided
+// potentionally faulty nodes via different nodes. When both attempts fail,
+// the peer will be marked as faulty.
+func (n *Node) checkPotentiallyFaulty(peers ...*Peer) {
+	// Loop over the potentially faulty peers.
+	for _, faulty := range peers {
+		conn, peer, err := n.dialFirstValidPeer(peers...)
+		if err != nil {
+			// Use this node in case there's no other peer available.
+			// This is not ideal, but can happen on small irreliable networks.
+			peer = &Peer{id: n.id, addr: n.addr}
+			c, err := peer.Dial()
+			if err != nil {
+				n.logger.Printf("all nodes failed")
+				continue
+			}
+			conn = c
+		}
+		defer conn.Close()
+
+		// Attempt 1 to ping
+		{
+			ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
+			defer cancel()
+			res, err := conn.client.Ping(ctx, &networking.PingRequest{Node: &networking.Node{Id: faulty.id, Addr: faulty.addr}})
+			if err != nil {
+				n.logger.Printf("Ping to %s/%s failed", faulty.addr, faulty.id)
+			} else if res.Success {
+				// We got a successful ping, so this peer is NOT faulty.
+				continue
+			}
+		}
+
+		// Attempt 2 to ping
+		{
+			// Add the previous peer to the list of exceptions and get another peer.
+			conn, peer, err := n.dialFirstValidPeer(append(peers, peer)...)
+			if err != nil {
+				// Use this node in case there's no other peer available.
+				// This is not ideal, but can happen on small irreliable networks.
+				peer = &Peer{id: n.id, addr: n.addr}
+				c, err := peer.Dial()
+				if err != nil {
+					n.logger.Printf("all nodes failed")
+					continue
+				}
+				conn = c
+			}
+			defer conn.Close()
+
+			ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
+			defer cancel()
+			res, err := conn.client.Ping(ctx, &networking.PingRequest{Node: &networking.Node{Id: faulty.id, Addr: faulty.addr}})
+			if err != nil {
+				n.logger.Printf("Ping to %s/%s failed", faulty.addr, faulty.id)
+			} else if res.Success {
+				// We got a successful ping, so this peer is NOT faulty.
+				continue
+			}
+
+			// Peer failed two ping attempts via different nodes. Mark peer as faulty.
+			n.MarkPeerFaulty(faulty.id)
+		}
+	}
+}
+
+// sync initiates a bidirectional stream for syncing known peers between
+// nodes.
 func (n *Node) sync() {
 	wg := sync.WaitGroup{}
+
+	faulty := []*Peer{}
 
 	for _, peer := range n.peers {
 		p, err := peer.Dial()
 		if err != nil {
-			// Mark peer as inactive
-			n.UpdatePeer(peer, true)
+			n.logger.Printf("Peer %s/%s is potentionally faulty", peer.addr, peer.id)
+			faulty = append(faulty, peer)
 			continue
 		}
 
@@ -28,7 +124,7 @@ func (n *Node) sync() {
 
 		stream, err := p.client.Sync(ctx)
 		if err != nil {
-			n.logger.Printf("Ping request failed: %v", err)
+			n.logger.Printf("Getting sync stream failed: %v", err)
 		}
 
 		joinedPeers := n.JoinedPeers()
@@ -81,6 +177,10 @@ func (n *Node) sync() {
 		stream.CloseSend() // TODO: Should perhaps be moved to sending goroutine.
 
 		n.EmptyNewAndfaultyPeers()
+
+		if len(faulty) > 0 {
+			n.checkPotentiallyFaulty(faulty...)
+		}
 	}
 }
 

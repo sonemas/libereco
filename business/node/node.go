@@ -81,6 +81,10 @@ type Node struct {
 
 	// BootstrapNodes are the nodes used to bootstrap to the network.
 	BootstrapNodes []string
+
+	// RandomSeed is the seed for the random number generator. Should probably
+	// only be changed for debugging purposes.
+	RandomSeed int64
 }
 
 // NodeOption is an option that can be provided to New to customize
@@ -139,6 +143,7 @@ func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 		stopChan:       make(chan struct{}, 1),
 		PingInterval:   60 * time.Second,
 		RequestTimeout: 20 * time.Second,
+		RandomSeed:     time.Now().UnixNano(),
 	}
 
 	for _, opt := range opts {
@@ -308,8 +313,8 @@ func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
 	return nil
 }
 
-// MarkPeerInactive makrs a peer as inactive via the provided id.
-func (n *Node) MarkPeerInactive(id string) error {
+// MarkPeerFaulty makrs a peer as inactive via the provided id.
+func (n *Node) MarkPeerFaulty(id string) error {
 	p, err := n.GetPeer(id)
 	if err != nil {
 		return err

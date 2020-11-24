@@ -111,7 +111,7 @@ func TestNode(t *testing.T) {
 		t.Logf("\t%s\tTest %d:\tShould have 1 peer marked as inactive.", tests.Success, testID)
 
 		// InactivePeer
-		if err := n.MarkPeerInactive(peer2.id); err != nil {
+		if err := n.MarkPeerFaulty(peer2.id); err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to mark peer as inactive:  %s.", tests.Failed, testID, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to mark peer as inactive.", tests.Success, testID)

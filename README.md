@@ -29,7 +29,9 @@ Under development. Not recommended for use in production.
 Targets for v1 release:
 - [ ] Node (member) management
 - [ ] Zones
+  - [ ] Refactor networking messaging
 - [ ] Wallets
-- [ ] Blockchain storage
+- [ ] Blockchain
+- [ ] Membership protocol abstraction
 - [ ] Advanced membership protocols
 - [ ] ZKP
