@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"io"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
@@ -38,44 +39,78 @@ func (n *Node) Register(req *networking.RegisterRequest, stream networking.Netwo
 	return nil
 }
 
-// Ping implements the NetworkingServiceServer interface.
-func (n *Node) Ping(_ *networking.EmptyRequest, stream networking.NetworkingService_PingServer) error {
-	for _, peer := range n.NewPeers() {
-		if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_JOINED}); err != nil {
-			continue
-		}
-	}
+// Sync implements the NetworkingServiceServer interface.
+func (n *Node) Sync(stream networking.NetworkingService_SyncServer) error {
+	newPeers := n.NewPeers()
+	inactivePeers := n.InactivePeers()
 
-	for _, peer := range n.InactivePeers() {
-		if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
-			continue
+	// Receive
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func(stream networking.NetworkingService_SyncServer) {
+		for {
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				n.logger.Printf("Failed to receive from stream: %s", err)
+				continue
+			}
+
+			switch msg.Status {
+			case networking.Node_NODE_STATUS_JOINED:
+				n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+			case networking.Node_NODE_STATUS_FAILED:
+				if n.HasPeer(msg.Id) {
+					n.RemovePeer(msg.Id)
+				}
+			default:
+				n.logger.Printf("Received unexpected status %q: %#v", msg.Status, msg)
+			}
 		}
-	}
+
+		wg.Done()
+	}(stream)
+
+	// Send
+	go func(stream networking.NetworkingService_SyncServer) {
+		for _, peer := range newPeers {
+			if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_JOINED}); err != nil {
+				continue
+			}
+		}
+
+		for _, peer := range inactivePeers {
+			if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
+				continue
+			}
+		}
+
+		wg.Done()
+	}(stream)
 
 	return nil
 }
 
-// PingReq implements the NetworkingServiceServer interface.
-func (n *Node) PingReq(ctx context.Context, req *networking.PingRequest) (*networking.PingReqResponse, error) {
+// Ping implements the NetworkingServiceServer interface.
+func (n *Node) Ping(ctx context.Context, req *networking.PingRequest) (*networking.PingReqResponse, error) {
+	// If no Node is provided, the ping request is for us.
+	if req.Node == nil {
+		return &networking.PingReqResponse{Success: true}, nil
+	}
+
+	// Requested to ping another node.
 	peer, err := DialPeer(req.Node.Addr, n.dialOptions...)
 	if err != nil {
 		return nil, errors.Wrap(err, "dialing peer")
 	}
 
-	stream, err := peer.client.Ping(ctx, &networking.EmptyRequest{})
+	res, err := peer.client.Ping(ctx, &networking.PingRequest{})
 	if err != nil {
 		return nil, errors.Wrap(err, "ping request to third node")
 	}
 
-	for {
-		_, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			continue
-		}
-	}
-
-	return &networking.PingReqResponse{Success: true}, nil
+	return res, nil
 }

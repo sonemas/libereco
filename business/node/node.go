@@ -337,32 +337,44 @@ func (n *Node) RemovePeer(id string) error {
 	return nil
 }
 
-// TODO: Review mechanism of emptying lists, implement pushing of new peers with ping requests.
-
 // NewPeers returns a slice of new peers and resets the interal table
 // of new peers.
 func (n *Node) NewPeers() []*Peer {
+	n.mu.Lock()
 	peers := n.newPeers
+	n.mu.Unlock()
+
 	r := []*Peer{}
 
 	for _, peer := range peers {
 		r = append(r, peer)
 	}
 
-	n.newPeers = make(map[string]*Peer)
 	return r
 }
 
 // InactivePeers returns a slice of inactive peers and resets the interal table
 // of inactive peers.
 func (n *Node) InactivePeers() []*Peer {
+	n.mu.Lock()
 	peers := n.inactivePeers
+	n.mu.Unlock()
+
 	r := []*Peer{}
 
 	for _, peer := range peers {
 		r = append(r, peer)
 	}
 
-	n.newPeers = make(map[string]*Peer)
 	return r
+}
+
+// EmptyNewAndInactivePeers resets the node's lists of
+// new and inactive peers.
+func (n *Node) EmptyNewAndInactivePeers() {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.newPeers = make(map[string]*Peer)
+	n.inactivePeers = make(map[string]*Peer)
 }

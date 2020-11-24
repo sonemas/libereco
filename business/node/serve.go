@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,6 +36,9 @@ func (n *Node) Serve() error {
 		for {
 			select {
 			case <-t.C:
+				// TODO: Abstraction
+				wg := sync.WaitGroup{}
+
 				for _, peer := range n.peers {
 					p, err := peer.Dial()
 					if err != nil {
@@ -46,31 +50,61 @@ func (n *Node) Serve() error {
 					ctx, cancel := context.WithTimeout(context.Background(), n.RequestTimeout)
 					defer cancel()
 
-					stream, err := p.client.Ping(ctx, &networking.EmptyRequest{})
+					stream, err := p.client.Sync(ctx)
 					if err != nil {
 						n.logger.Printf("Ping request failed: %v", err)
 					}
 
-					for {
-						msg, err := stream.Recv()
-						if err == io.EOF {
-							break
-						}
-						if err != nil {
-							n.logger.Printf("Stream error: %v", err)
+					newPeers := n.NewPeers()
+					inactivePeers := n.InactivePeers()
+
+					wg.Add(2)
+					go func(stream networking.NetworkingService_SyncClient, newPeers []*Peer, inactivePeers []*Peer) {
+						for _, peer := range newPeers {
+							if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_JOINED}); err != nil {
+								n.logger.Printf("Failed to send to stream: %s", err)
+								continue
+							}
 						}
 
-						switch msg.Status {
-						case networking.Node_NODE_STATUS_JOINED:
-							n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
-						case networking.Node_NODE_STATUS_FAILED:
-							if n.HasPeer(msg.Id) {
-								n.RemovePeer(msg.Id)
+						for _, peer := range inactivePeers {
+							if err := stream.Send(&networking.Node{Id: peer.id, Addr: peer.addr, Status: networking.Node_NODE_STATUS_FAILED}); err != nil {
+								n.logger.Printf("Failed to send to stream: %s", err)
+								continue
 							}
-						default:
-							n.logger.Printf("Unexpected status: %v", msg.Status)
 						}
-					}
+
+						wg.Done()
+					}(stream, newPeers, inactivePeers)
+
+					go func(stream networking.NetworkingService_SyncClient) {
+						for {
+							msg, err := stream.Recv()
+							if err == io.EOF {
+								break
+							}
+							if err != nil {
+								n.logger.Printf("Stream error: %v", err)
+							}
+
+							switch msg.Status {
+							case networking.Node_NODE_STATUS_JOINED:
+								n.AddPeer(&Peer{id: msg.Id, addr: msg.Addr})
+							case networking.Node_NODE_STATUS_FAILED:
+								if n.HasPeer(msg.Id) {
+									n.RemovePeer(msg.Id)
+								}
+							default:
+								n.logger.Printf("Unexpected status: %v", msg.Status)
+							}
+						}
+						wg.Done()
+					}(stream)
+
+					wg.Wait()
+					stream.CloseSend() // TODO: Should perhaps be moved to sending goroutine.
+
+					n.EmptyNewAndInactivePeers()
 				}
 			case <-n.stopChan:
 				break

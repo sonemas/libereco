@@ -404,24 +404,24 @@ var file_networking_networking_proto_rawDesc = []byte{
 	0x67, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x6e, 0x6f, 0x64, 0x65, 0x22, 0x2b, 0x0a, 0x0f,
 	0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
 	0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08,
-	0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0xcd, 0x01, 0x0a, 0x11, 0x4e, 0x65,
+	0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0xc4, 0x01, 0x0a, 0x11, 0x4e, 0x65,
 	0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
 	0x3d, 0x0a, 0x08, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x12, 0x1b, 0x2e, 0x6e, 0x65,
 	0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65,
 	0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x10, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f,
-	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x36,
-	0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x18, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b,
-	0x69, 0x6e, 0x67, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x10, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x4e, 0x6f,
-	0x64, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x41, 0x0a, 0x07, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65,
-	0x71, 0x12, 0x17, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x50,
-	0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x6e, 0x65, 0x74,
-	0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x3a, 0x5a, 0x38, 0x67, 0x69, 0x74,
-	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x6f, 0x6e, 0x65, 0x6d, 0x61, 0x73, 0x2f,
-	0x6c, 0x69, 0x62, 0x65, 0x72, 0x65, 0x63, 0x6f, 0x2f, 0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73,
-	0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x6e, 0x65, 0x74, 0x77, 0x6f,
-	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x30,
+	0x0a, 0x04, 0x53, 0x79, 0x6e, 0x63, 0x12, 0x10, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b,
+	0x69, 0x6e, 0x67, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x1a, 0x10, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f,
+	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01,
+	0x12, 0x3e, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x17, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f,
+	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x1b, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x50,
+	0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00,
+	0x42, 0x3a, 0x5a, 0x38, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73,
+	0x6f, 0x6e, 0x65, 0x6d, 0x61, 0x73, 0x2f, 0x6c, 0x69, 0x62, 0x65, 0x72, 0x65, 0x63, 0x6f, 0x2f,
+	0x62, 0x75, 0x73, 0x69, 0x6e, 0x65, 0x73, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
+	0x66, 0x2f, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -451,11 +451,11 @@ var file_networking_networking_proto_depIdxs = []int32{
 	0, // 0: networking.Node.status:type_name -> networking.Node.Status
 	1, // 1: networking.PingRequest.node:type_name -> networking.Node
 	2, // 2: networking.NetworkingService.Register:input_type -> networking.RegisterRequest
-	4, // 3: networking.NetworkingService.Ping:input_type -> networking.EmptyRequest
-	5, // 4: networking.NetworkingService.PingReq:input_type -> networking.PingRequest
+	1, // 3: networking.NetworkingService.Sync:input_type -> networking.Node
+	5, // 4: networking.NetworkingService.Ping:input_type -> networking.PingRequest
 	1, // 5: networking.NetworkingService.Register:output_type -> networking.Node
-	1, // 6: networking.NetworkingService.Ping:output_type -> networking.Node
-	6, // 7: networking.NetworkingService.PingReq:output_type -> networking.PingReqResponse
+	1, // 6: networking.NetworkingService.Sync:output_type -> networking.Node
+	6, // 7: networking.NetworkingService.Ping:output_type -> networking.PingReqResponse
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -576,8 +576,8 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type NetworkingServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (NetworkingService_RegisterClient, error)
-	Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (NetworkingService_PingClient, error)
-	PingReq(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReqResponse, error)
+	Sync(ctx context.Context, opts ...grpc.CallOption) (NetworkingService_SyncClient, error)
+	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReqResponse, error)
 }
 
 type networkingServiceClient struct {
@@ -620,31 +620,30 @@ func (x *networkingServiceRegisterClient) Recv() (*Node, error) {
 	return m, nil
 }
 
-func (c *networkingServiceClient) Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (NetworkingService_PingClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_NetworkingService_serviceDesc.Streams[1], "/networking.NetworkingService/Ping", opts...)
+func (c *networkingServiceClient) Sync(ctx context.Context, opts ...grpc.CallOption) (NetworkingService_SyncClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_NetworkingService_serviceDesc.Streams[1], "/networking.NetworkingService/Sync", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &networkingServicePingClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+	x := &networkingServiceSyncClient{stream}
 	return x, nil
 }
 
-type NetworkingService_PingClient interface {
+type NetworkingService_SyncClient interface {
+	Send(*Node) error
 	Recv() (*Node, error)
 	grpc.ClientStream
 }
 
-type networkingServicePingClient struct {
+type networkingServiceSyncClient struct {
 	grpc.ClientStream
 }
 
-func (x *networkingServicePingClient) Recv() (*Node, error) {
+func (x *networkingServiceSyncClient) Send(m *Node) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *networkingServiceSyncClient) Recv() (*Node, error) {
 	m := new(Node)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -652,9 +651,9 @@ func (x *networkingServicePingClient) Recv() (*Node, error) {
 	return m, nil
 }
 
-func (c *networkingServiceClient) PingReq(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReqResponse, error) {
+func (c *networkingServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReqResponse, error) {
 	out := new(PingReqResponse)
-	err := c.cc.Invoke(ctx, "/networking.NetworkingService/PingReq", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/networking.NetworkingService/Ping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -664,8 +663,8 @@ func (c *networkingServiceClient) PingReq(ctx context.Context, in *PingRequest, 
 // NetworkingServiceServer is the server API for NetworkingService service.
 type NetworkingServiceServer interface {
 	Register(*RegisterRequest, NetworkingService_RegisterServer) error
-	Ping(*EmptyRequest, NetworkingService_PingServer) error
-	PingReq(context.Context, *PingRequest) (*PingReqResponse, error)
+	Sync(NetworkingService_SyncServer) error
+	Ping(context.Context, *PingRequest) (*PingReqResponse, error)
 }
 
 // UnimplementedNetworkingServiceServer can be embedded to have forward compatible implementations.
@@ -675,11 +674,11 @@ type UnimplementedNetworkingServiceServer struct {
 func (*UnimplementedNetworkingServiceServer) Register(*RegisterRequest, NetworkingService_RegisterServer) error {
 	return status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
-func (*UnimplementedNetworkingServiceServer) Ping(*EmptyRequest, NetworkingService_PingServer) error {
-	return status.Errorf(codes.Unimplemented, "method Ping not implemented")
+func (*UnimplementedNetworkingServiceServer) Sync(NetworkingService_SyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
 }
-func (*UnimplementedNetworkingServiceServer) PingReq(context.Context, *PingRequest) (*PingReqResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PingReq not implemented")
+func (*UnimplementedNetworkingServiceServer) Ping(context.Context, *PingRequest) (*PingReqResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 
 func RegisterNetworkingServiceServer(s *grpc.Server, srv NetworkingServiceServer) {
@@ -707,41 +706,46 @@ func (x *networkingServiceRegisterServer) Send(m *Node) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _NetworkingService_Ping_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(EmptyRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(NetworkingServiceServer).Ping(m, &networkingServicePingServer{stream})
+func _NetworkingService_Sync_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NetworkingServiceServer).Sync(&networkingServiceSyncServer{stream})
 }
 
-type NetworkingService_PingServer interface {
+type NetworkingService_SyncServer interface {
 	Send(*Node) error
+	Recv() (*Node, error)
 	grpc.ServerStream
 }
 
-type networkingServicePingServer struct {
+type networkingServiceSyncServer struct {
 	grpc.ServerStream
 }
 
-func (x *networkingServicePingServer) Send(m *Node) error {
+func (x *networkingServiceSyncServer) Send(m *Node) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _NetworkingService_PingReq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func (x *networkingServiceSyncServer) Recv() (*Node, error) {
+	m := new(Node)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _NetworkingService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PingRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NetworkingServiceServer).PingReq(ctx, in)
+		return srv.(NetworkingServiceServer).Ping(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/networking.NetworkingService/PingReq",
+		FullMethod: "/networking.NetworkingService/Ping",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NetworkingServiceServer).PingReq(ctx, req.(*PingRequest))
+		return srv.(NetworkingServiceServer).Ping(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -751,8 +755,8 @@ var _NetworkingService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*NetworkingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "PingReq",
-			Handler:    _NetworkingService_PingReq_Handler,
+			MethodName: "Ping",
+			Handler:    _NetworkingService_Ping_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -762,9 +766,10 @@ var _NetworkingService_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "Ping",
-			Handler:       _NetworkingService_Ping_Handler,
+			StreamName:    "Sync",
+			Handler:       _NetworkingService_Sync_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "networking/networking.proto",

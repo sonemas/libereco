@@ -35,6 +35,6 @@ message PingReqResponse {
 
 service NetworkingService {
     rpc Register(RegisterRequest) returns (stream Node) {};
-    rpc Ping(EmptyRequest) returns (stream Node) {};
-    rpc PingReq(PingRequest) returns (PingReqResponse) {};
+    rpc Sync(stream Node) returns (stream Node) {};
+    rpc Ping(PingRequest) returns (PingReqResponse) {};
 }

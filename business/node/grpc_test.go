@@ -127,10 +127,10 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 1 peer registered with node %d.", tests.Success, testID, i)
 
-		if l := len(nodes[0].newPeers); l != 0 {
-			t.Fatalf("\t%s\tTest %d:\tShould have 0 new peers registered with node %d, but got: %d.", tests.Failed, testID, i, l)
+		if l := len(nodes[0].newPeers); l != 1 {
+			t.Fatalf("\t%s\tTest %d:\tShould have 1 new peer registered with node %d, but got: %d.", tests.Failed, testID, i, l)
 		}
-		t.Logf("\t%s\tTest %d:\tShould have 0 new peers registered with node %d.", tests.Success, testID, i)
+		t.Logf("\t%s\tTest %d:\tShould have 1 new peer registered with node %d.", tests.Success, testID, i)
 
 		// Ping
 		err = nodes[0].MarkPeerInactive("9999")
@@ -139,55 +139,26 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to mark peer as inactive.", tests.Success, testID)
 
-		stream, err = client.Ping(context.Background(), &networking.EmptyRequest{})
+		res, err := client.Ping(context.Background(), &networking.PingRequest{})
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to register with node %d: %s.", tests.Failed, testID, i, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to register with node %d.", tests.Success, testID, i)
 
-		peers2 := []*networking.Node{}
-		for {
-			peer, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				t.Fatalf("\t%s\tTest %d:\tShould be able to get strean data from node %d: %s.", tests.Failed, testID, i, err)
-			}
-			peers2 = append(peers2, peer)
+		if !res.Success {
+			t.Fatalf("\t%s\tTest %d:\tShould be get success response from node %d.", tests.Failed, testID, i)
 		}
-		t.Logf("\t%s\tTest %d:\tShould be able to get strean data from node %d.", tests.Success, testID, i)
-
-		if l := len(peers2); l != 1 {
-			t.Fatalf("\t%s\tTest %d:\tShould have received 1 peer via stream, but got: %d.", tests.Failed, testID, l)
-		}
-		t.Logf("\t%s\tTest %d:\tShould have received 1 peer via stream.", tests.Success, testID)
-
-		{
-			got, expected := peers2[0].Id, "9999"
-			if got != expected {
-				t.Fatalf("\t%s\tTest %d:\tShould have received peer with ID %q via stream, but got: %q.", tests.Failed, testID, expected, got)
-			}
-			t.Logf("\t%s\tTest %d:\tShould have received peer with ID %q via stream.", tests.Success, testID, expected)
-		}
-
-		{
-			got, expected := peers2[0].Status, networking.Node_NODE_STATUS_FAILED
-			if got != expected {
-				t.Fatalf("\t%s\tTest %d:\tShould have received peer with status %v via stream, but got: %v.", tests.Failed, testID, expected, got)
-			}
-			t.Logf("\t%s\tTest %d:\tShould have received peer with status %v via stream.", tests.Success, testID, expected)
-		}
+		t.Logf("\t%s\tTest %d:\tShould be get success response from node %d.", tests.Success, testID, i)
 
 		if l := len(nodes[0].peers); l != 0 {
 			t.Fatalf("\t%s\tTest %d:\tShould have 0 peers registered with node %d, but got: %d :\n%v.", tests.Failed, testID, i, l, nodes[0])
 		}
 		t.Logf("\t%s\tTest %d:\tShould have 0 peer registered with node %d.", tests.Success, testID, i)
 
-		if l := len(nodes[0].newPeers); l != 0 {
-			t.Fatalf("\t%s\tTest %d:\tShould have 0 faulty peers registered with node %d, but got: %d.", tests.Failed, testID, i, l)
+		if l := len(nodes[0].newPeers); l != 1 {
+			t.Fatalf("\t%s\tTest %d:\tShould have 1 faulty peers registered with node %d, but got: %d.", tests.Failed, testID, i, l)
 		}
-		t.Logf("\t%s\tTest %d:\tShould have 0 faulty peers registered with node %d.", tests.Success, testID, i)
+		t.Logf("\t%s\tTest %d:\tShould have 1 faulty peers registered with node %d.", tests.Success, testID, i)
 
 		// PingReq
 		i2, err := newNode()
@@ -196,7 +167,7 @@ func TestGRPC(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to create node %d.", tests.Success, testID, i2)
 
-		res, err := client.PingReq(context.Background(), &networking.PingRequest{Node: &networking.Node{Id: "0", Addr: nodes[1].addr}})
+		res, err = client.Ping(context.Background(), &networking.PingRequest{Node: &networking.Node{Id: "0", Addr: nodes[1].addr}})
 		if err != nil {
 			t.Fatalf("\t%s\tTest %d:\tShould be able to ping node %d: %s.", tests.Failed, testID, i, err)
 		}
@@ -221,7 +192,7 @@ func TestGRPC(t *testing.T) {
 		if got != expected {
 			t.Fatalf("\t%s\tTest %d:\tShould have %d peers in finger table, but got: %d.", tests.Failed, testID, expected, got)
 		}
-		t.Logf("\t%s\tTest %d:\tShould have %d peers in finger table.", tests.Failed, testID, expected)
+		t.Logf("\t%s\tTest %d:\tShould have %d peers in finger table.", tests.Success, testID, expected)
 	}
 
 }
