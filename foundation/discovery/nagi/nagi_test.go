@@ -1,11 +1,12 @@
-package node
+package nagi
 
 import (
 	"log"
 	"os"
 	"testing"
 
-	"github.com/sonemas/libereco/business/tests"
+	"github.com/sonemas/libereco/foundation/discovery"
+	"github.com/sonemas/libereco/foundation/tests"
 )
 
 func TestNode(t *testing.T) {
@@ -50,7 +51,7 @@ func TestNode(t *testing.T) {
 		t.Logf("\t%s\tTest %d:\tShould be able to set a new peer.", tests.Success, testID)
 
 		err = n.SetPeer(&peer1)
-		if err != ErrPeerExists {
+		if err != discovery.ErrPeerExists {
 			t.Fatalf("\t%s\tTest %d:\tShould get ErrPeerExists when trying to set an existing peer, but got %v.", tests.Failed, testID, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerExists when trying to set an existing peer.", tests.Success, testID)
@@ -73,7 +74,7 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould get peer id %s.", tests.Success, testID, peer1.id)
 
-		if _, err = n.GetPeer("blahblah"); err != ErrPeerNotFound {
+		if _, err = n.GetPeer("blahblah"); err != discovery.ErrPeerNotFound {
 			t.Fatalf("\t%s\tTest %d:\tShould get ErrPeerNotFound when trying to get a non-existing peer, but got %v.", tests.Failed, testID, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerNotFound when trying to get a non-existing peer.", tests.Success, testID)
@@ -87,7 +88,7 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to update and mark a peer as inactive.", tests.Success, testID)
 
-		if _, err := n.GetPeer(peer1.id); err != ErrPeerNotFound {
+		if _, err := n.GetPeer(peer1.id); err != discovery.ErrPeerNotFound {
 			t.Fatalf("\t%s\tTest %d:\tShould get ErrPeerNotFound when getting inactive client, but got:  %s.", tests.Failed, testID, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerNotFound when getting inactive client.", tests.Success, testID)
@@ -135,7 +136,7 @@ func TestNode(t *testing.T) {
 		}
 		t.Logf("\t%s\tTest %d:\tShould be able to remove a new peer.", tests.Success, testID)
 
-		if _, err = n.GetPeer(peer2.id); err != ErrPeerNotFound {
+		if _, err = n.GetPeer(peer2.id); err != discovery.ErrPeerNotFound {
 			t.Fatalf("\t%s\tTest %d:\tShould get ErrPeerNotFound when trying to get a removed peer, but got %v.", tests.Failed, testID, err)
 		}
 		t.Logf("\t%s\tTest %d:\tShould get ErrPeerNotFound when trying to get a removed peer.", tests.Success, testID)

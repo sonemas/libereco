@@ -1,4 +1,4 @@
-package node
+package nagi
 
 import (
 	"github.com/pkg/errors"

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package messaging;
+option go_package="github.com/sonemas/libereco/business/protobuf/messaging";
+
+message MessageHeader {
+    string signer_public_key = 1;
+}
+
+message Response {
+    enum ResponseType {
+        RESPONSE_TYPE_UNSET = 0;
+        RESPONSE_TYPE_SUCCESS = 1;
+        RESPONSE_TYPE_ERROR = 2;
+    }
+
+    ResponseType response_type = 1;
+    bytes data = 2;
+}
+
+message Message {
+    enum PayloadType {
+        PAYLOAD_TYPE_UNSET = 0;
+        PAYLOAD_TYPE_ZONE = 1;
+    }
+
+    message ZonePayload {
+        string domain = 1;
+        bytes data = 2;
+    }
+
+    MessageHeader header = 1;
+    string header_signature = 2;
+    PayloadType payload_type = 3;
+    ZonePayload zone_payload = 4;
+}
+
+service MessagingService {
+    rpc Invoke(Message) returns (Response) {};
+}

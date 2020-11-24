@@ -1,4 +1,4 @@
-package node
+package nagi
 
 import (
 	"context"
@@ -11,30 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
+	"github.com/sonemas/libereco/foundation/discovery"
 	"google.golang.org/grpc"
-)
-
-// TODO: Dealing with faulty peers.
-
-var (
-	// ErrPeerNotFound is an error indicating that a peer can't be found.
-	ErrPeerNotFound = errors.New("peer not found")
-
-	// ErrPeerExists is an error indicating that a peer already exists in
-	// a node's finger table.
-	ErrPeerExists = errors.New("peer already exists")
-
-	// ErrInvalidAddr is an error indicating an address is not in the correct format.
-	ErrInvalidAddr = errors.New("address should be in the format host:port/id[/protocol]")
-
-	// ErrBootstrapingFailed is an error indicating that bootstrapping failed.
-	ErrBootstrapingFailed = errors.New("bootstrap process failed")
-
-	// ErrNodeIsStopped is an error indicating that the node has been stopped.
-	ErrNodeIsStopped = errors.New("node is stopped.")
-
-	// ErrNodeInShutdown is an error indicating that the node is shutting down.
-	ErrNodeInShutdown = errors.New("node is shutting down")
 )
 
 // SplitAddr splits the provided address into the host/port, id and optional protocol.
@@ -42,7 +20,7 @@ var (
 func SplitAddr(addr string) (string, string, string, error) {
 	p := strings.Split(addr, "/")
 	if len(p) < 2 {
-		return "", "", "", ErrInvalidAddr
+		return "", "", "", discovery.ErrInvalidAddr
 	}
 
 	pr := "tcp"
@@ -59,8 +37,8 @@ func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
 func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
 
-// Node is a networking node.
-type Node struct {
+// Nagi is a the implementation of the naĝi service discovery protocol.
+type Nagi struct {
 	mu          sync.RWMutex
 	id          string
 	addr        string
@@ -81,20 +59,16 @@ type Node struct {
 
 	// BootstrapNodes are the nodes used to bootstrap to the network.
 	BootstrapNodes []string
-
-	// RandomSeed is the seed for the random number generator. Should probably
-	// only be changed for debugging purposes.
-	RandomSeed int64
 }
 
-// NodeOption is an option that can be provided to New to customize
+// NagiOption is an option that can be provided to New to customize
 // the node's internal values.
-type NodeOption func(*Node) error
+type NagiOption func(*Nagi) error
 
 // WithBootstrapNodes is an option to provide the bootstrap nodes for the node
 // to use for the bootstrap process.
-func WithBootstrapNodes(v ...string) NodeOption {
-	return func(n *Node) error {
+func WithBootstrapNodes(v ...string) NagiOption {
+	return func(n *Nagi) error {
 		n.BootstrapNodes = v
 		return nil
 	}
@@ -102,8 +76,8 @@ func WithBootstrapNodes(v ...string) NodeOption {
 
 // WithDialOptions is an option to provide dialoptions that will be used
 // when making GRPC dial requests to peers.
-func WithDialOptions(v ...grpc.DialOption) NodeOption {
-	return func(n *Node) error {
+func WithDialOptions(v ...grpc.DialOption) NagiOption {
+	return func(n *Nagi) error {
 		n.dialOptions = v
 		return nil
 	}
@@ -111,29 +85,29 @@ func WithDialOptions(v ...grpc.DialOption) NodeOption {
 
 // WithPingInterval is an option to set a node's duration of ping sessions
 // to peers.
-func WithPingInterval(v time.Duration) NodeOption {
-	return func(n *Node) error {
+func WithPingInterval(v time.Duration) NagiOption {
+	return func(n *Nagi) error {
 		n.PingInterval = v
 		return nil
 	}
 }
 
 // WithRequestTimeout is an option to define requests' timeout duration.
-func WithRequestTimeout(v time.Duration) NodeOption {
-	return func(n *Node) error {
+func WithRequestTimeout(v time.Duration) NagiOption {
+	return func(n *Nagi) error {
 		n.PingInterval = v
 		return nil
 	}
 }
 
 // New returns an initialized node.
-func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
+func New(logger *log.Logger, addr string, opts ...NagiOption) (*Nagi, error) {
 	addr, id, _, err := SplitAddr(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	n := Node{
+	n := Nagi{
 		logger:         logger,
 		id:             id,
 		addr:           addr,
@@ -143,7 +117,6 @@ func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 		stopChan:       make(chan struct{}, 1),
 		PingInterval:   60 * time.Second,
 		RequestTimeout: 20 * time.Second,
-		RandomSeed:     time.Now().UnixNano(),
 	}
 
 	for _, opt := range opts {
@@ -204,7 +177,7 @@ func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 
 		if !success {
 			n.logger.Printf("Could't successfully bootstrap node.")
-			return nil, ErrBootstrapingFailed
+			return nil, discovery.ErrBootstrapingFailed
 		}
 		n.logger.Printf("Successfully bootstrapped node.")
 	}
@@ -213,7 +186,7 @@ func New(logger *log.Logger, addr string, opts ...NodeOption) (*Node, error) {
 }
 
 // HasPeer returns true if a peer exists in the finger table.
-func (n *Node) HasPeer(id string) bool {
+func (n *Nagi) HasPeer(id string) bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -223,12 +196,12 @@ func (n *Node) HasPeer(id string) bool {
 
 // GetPeer returns a pointer to Peer or and error if the peer is or isn't in
 // the node's finger table.
-func (n *Node) GetPeer(id string) (*Peer, error) {
+func (n *Nagi) GetPeer(id string) (*Peer, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	p, ok := n.peers[id]
 	if !ok {
-		return nil, ErrPeerNotFound
+		return nil, discovery.ErrPeerNotFound
 	}
 
 	return p, nil
@@ -237,7 +210,7 @@ func (n *Node) GetPeer(id string) (*Peer, error) {
 // AddPeer adds a peer to the node's finger table and marks the peer as a new
 // peer. Unlike SetPeer, AddPeer does NOT return an error if the peer already
 // exists in the finger table.
-func (n *Node) AddPeer(p *Peer) {
+func (n *Nagi) AddPeer(p *Peer) {
 	if n.HasPeer(p.id) {
 		return
 	}
@@ -258,9 +231,9 @@ func (n *Node) AddPeer(p *Peer) {
 
 // SetPeer adds a peer to the node's finger table.
 // Returns an error in case the peer already exists in the table.
-func (n *Node) SetPeer(p *Peer) error {
+func (n *Nagi) SetPeer(p *Peer) error {
 	if n.HasPeer(p.id) {
-		return ErrPeerExists
+		return discovery.ErrPeerExists
 	}
 
 	n.mu.Lock()
@@ -278,9 +251,9 @@ func (n *Node) SetPeer(p *Peer) error {
 
 // UpdatePeer updates a peer in the node's fiunger table. Use inactive to
 // mark the peer as infactive.
-func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
+func (n *Nagi) UpdatePeer(p *Peer, inactive bool) error {
 	if !n.HasPeer(p.id) {
-		return ErrPeerNotFound
+		return discovery.ErrPeerNotFound
 	}
 
 	n.mu.Lock()
@@ -314,7 +287,7 @@ func (n *Node) UpdatePeer(p *Peer, inactive bool) error {
 }
 
 // MarkPeerFaulty makrs a peer as inactive via the provided id.
-func (n *Node) MarkPeerFaulty(id string) error {
+func (n *Nagi) MarkPeerFaulty(id string) error {
 	p, err := n.GetPeer(id)
 	if err != nil {
 		return err
@@ -333,7 +306,7 @@ func (n *Node) MarkPeerFaulty(id string) error {
 
 // RemovePeer will remove a peer form the node's finger table, as well as
 // the tables of new/inactive peers.
-func (n *Node) RemovePeer(id string) error {
+func (n *Nagi) RemovePeer(id string) error {
 	p, err := n.GetPeer(id)
 	if err != nil {
 		return err
@@ -361,7 +334,7 @@ func (n *Node) RemovePeer(id string) error {
 
 // JoinedPeers returns a slice of new peers and resets the interal table
 // of new peers.
-func (n *Node) JoinedPeers() []*Peer {
+func (n *Nagi) JoinedPeers() []*Peer {
 	n.mu.Lock()
 	peers := n.joinedPeers
 	n.mu.Unlock()
@@ -377,7 +350,7 @@ func (n *Node) JoinedPeers() []*Peer {
 
 // FaultyPeers returns a slice of inactive peers and resets the interal table
 // of inactive peers.
-func (n *Node) FaultyPeers() []*Peer {
+func (n *Nagi) FaultyPeers() []*Peer {
 	n.mu.Lock()
 	peers := n.faultyPeers
 	n.mu.Unlock()
@@ -393,7 +366,7 @@ func (n *Node) FaultyPeers() []*Peer {
 
 // EmptyNewAndfaultyPeers resets the node's lists of
 // new and inactive peers.
-func (n *Node) EmptyNewAndfaultyPeers() {
+func (n *Nagi) EmptyNewAndfaultyPeers() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 

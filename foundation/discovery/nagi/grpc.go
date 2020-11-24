@@ -1,4 +1,4 @@
-package node
+package nagi
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 // Register implements the NetworkingServiceServer interface.
-func (n *Node) Register(req *networking.RegisterRequest, stream networking.NetworkingService_RegisterServer) error {
+func (n *Nagi) Register(req *networking.RegisterRequest, stream networking.NetworkingService_RegisterServer) error {
 	n.logger.Printf("Received registration request: %+v", req)
 	n.AddPeer(&Peer{id: req.Id, addr: req.Addr})
 
@@ -40,7 +40,7 @@ func (n *Node) Register(req *networking.RegisterRequest, stream networking.Netwo
 }
 
 // Sync implements the NetworkingServiceServer interface.
-func (n *Node) Sync(stream networking.NetworkingService_SyncServer) error {
+func (n *Nagi) Sync(stream networking.NetworkingService_SyncServer) error {
 	joinedPeers := n.JoinedPeers()
 	faultyPeers := n.FaultyPeers()
 
@@ -95,7 +95,7 @@ func (n *Node) Sync(stream networking.NetworkingService_SyncServer) error {
 }
 
 // Ping implements the NetworkingServiceServer interface.
-func (n *Node) Ping(ctx context.Context, req *networking.PingRequest) (*networking.PingReqResponse, error) {
+func (n *Nagi) Ping(ctx context.Context, req *networking.PingRequest) (*networking.PingReqResponse, error) {
 	// If no Node is provided, the ping request is for us.
 	if req.Node == nil {
 		return &networking.PingReqResponse{Success: true}, nil

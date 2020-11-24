@@ -1,4 +1,4 @@
-package node
+package nagi
 
 import (
 	"context"
@@ -10,10 +10,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sonemas/libereco/business/protobuf/networking"
+	"github.com/sonemas/libereco/foundation/discovery"
 	"google.golang.org/grpc"
 )
 
-func (n *Node) dialFirstValidPeer(except ...*Peer) (*PeerConnection, *Peer, error) {
+func (n *Nagi) dialFirstValidPeer(except ...*Peer) (*PeerConnection, *Peer, error) {
 	for _, peer := range n.peers {
 		ok := true
 		for _, e := range except {
@@ -41,7 +42,7 @@ func (n *Node) dialFirstValidPeer(except ...*Peer) (*PeerConnection, *Peer, erro
 // checkPotentiallyFaulty will do up to two attempts to ping the provided
 // potentionally faulty nodes via different nodes. When both attempts fail,
 // the peer will be marked as faulty.
-func (n *Node) checkPotentiallyFaulty(peers ...*Peer) {
+func (n *Nagi) checkPotentiallyFaulty(peers ...*Peer) {
 	// Loop over the potentially faulty peers.
 	for _, faulty := range peers {
 		conn, peer, err := n.dialFirstValidPeer(peers...)
@@ -106,7 +107,7 @@ func (n *Node) checkPotentiallyFaulty(peers ...*Peer) {
 
 // sync initiates a bidirectional stream for syncing known peers between
 // nodes.
-func (n *Node) sync() {
+func (n *Nagi) sync() {
 	wg := sync.WaitGroup{}
 
 	faulty := []*Peer{}
@@ -187,14 +188,14 @@ func (n *Node) sync() {
 // Serve starts the server and blocks on server requests.
 // It will also initialize the periodic ping requests to check whether
 // peers are still alive.
-func (n *Node) Serve() error {
+func (n *Nagi) Serve() error {
 	// Return an error if the node is shutting down or shutdown.
 	if n.inShutdown.isSet() {
-		return ErrNodeInShutdown
+		return discovery.ErrServiceInShutdown
 	}
 
 	if n.stopped.isSet() {
-		return ErrNodeIsStopped
+		return discovery.ErrServiceIsStopped
 	}
 
 	l, err := net.Listen("tcp", n.addr)
@@ -241,7 +242,7 @@ func (n *Node) Serve() error {
 }
 
 // Shutdown will gracefully shutdown the server.
-func (n *Node) Shutdown(ctx context.Context) error {
+func (n *Nagi) Shutdown(ctx context.Context) error {
 	n.inShutdown.setTrue()
 	n.stopChan <- struct{}{}
 

@@ -1,4 +1,4 @@
-package node
+package nagi
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/sonemas/libereco/business/protobuf/networking"
-	"github.com/sonemas/libereco/business/tests"
+	"github.com/sonemas/libereco/foundation/tests"
 	"google.golang.org/grpc"
 )
 
-var nodes []*Node
+var nodes []*Nagi
 
 func tearDown() {
 	for _, node := range nodes {
