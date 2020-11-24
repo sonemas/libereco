@@ -2,9 +2,6 @@
 Copyright (c) 2020, [UAB Sonemas](https://sonemas.com)
 office@sonemas.com
 
-## About this project
-The Libereco Framework is an open source framework for the development of enterprise grade distributed systems.
-
 ## License
 ```
     This program is free software: you can redistribute it and/or modify
@@ -21,3 +18,18 @@ The Libereco Framework is an open source framework for the development of enterp
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
+## About this project
+The Libereco Framework is an open source framework for the development of enterprise grade distributed systems.
+
+### State
+Under development. Not recommended for use in production.
+
+## TODO
+
+Targets for v1 release:
+[ ] Node (member) management
+[ ] Zones
+[ ] Wallets
+[ ] Blockchain storage
+[ ] Advanced membership protocols
+[ ] ZKP
